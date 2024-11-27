@@ -7,7 +7,8 @@ import Render from '@/components/Render.vue'
 export type RPGme2 = typeof ini
 
 const g = ref<Array<Walls>[]>([])
-const datas = ref<RPGme2>()
+const datas = ref<RPGme2 | null>(null)
+const download = useTemplateRef('download')
 const wall = {
   light: 40,
   sight: 20,
@@ -27,16 +28,9 @@ const wall = {
   flags: {},
 }
 
-const download = useTemplateRef('download')
-
-const file = useTemplateRef('file')
-
-let w: number
-let h: number
-
 const initGrid = (data: RPGme2, g: Array<Walls>[]) => {
-  w = data.w
-  h = data.h
+  const w = data.w
+  const h = data.h
   datas.value = data
   const d = data.collisions
   for (let r = 0; r < h + 2; r++) {
@@ -70,6 +64,7 @@ const initGrid = (data: RPGme2, g: Array<Walls>[]) => {
 
 const onFile = async (e: Event) => {
   const files = (<HTMLInputElement>e.target).files
+  g.value = []
   if (files && files.length) {
     const response = await files[0].text()
     const json = JSON.parse(response)
@@ -81,18 +76,19 @@ const onFile = async (e: Event) => {
 
 <template>
   <main>
-    <input ref="file" v-on:change="onFile" type="file" />
+    <input v-on:change="onFile" type="file" />
     <button ref="download">download</button>
     <div class="f">
       <Grid :datas="g" />
       <Render :grid="g" :datas="datas" />
     </div>
-    <hr />
   </main>
 </template>
 <style scoped>
 .f {
   display: flex;
   flex-direction: row;
+  align-items: center;
+  justify-content: center;
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, useTemplateRef, watchEffect } from 'vue'
+import { computed, watch } from 'vue'
 import { Walls } from '@/main'
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
 const { datas } = defineProps<Props>()
 
 const widthObj = computed(() => {
-  return { width: `${datas[0] ? datas[0].length * 20 : 100}px` }
+  return { width: `${datas[0] ? datas[0].length * 8 : 100}px` }
 })
 const getColor = (wall: Walls) => {
   let col
@@ -32,21 +32,28 @@ const getColor = (wall: Walls) => {
 }
 </script>
 <template>
-  <div class="grid" :style="widthObj">
-    <template v-for="(i, ide) in datas">
-      <span v-for="(k, id) in i" :key="`${ide}-${id}`" :style="getColor(k)"></span>
-    </template>
+  <div class="cont">
+    <div class="grid" key="grid" :style="widthObj">
+      <template :key="`${ide}`" v-for="(i, ide) in datas">
+        <span v-for="(k, id) in i" :key="`${ide}-${id}`" :style="getColor(k)"></span>
+      </template>
+    </div>
   </div>
 </template>
 
 <style>
+.cont {
+  margin: 1rem;
+  padding: 2rem;
+  border: 1px solid #dddddd;
+}
 .grid {
   line-height: 0px;
   box-sizing: border-box;
   span {
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 8px;
+    height: 8px;
     background-color: #eeeeee;
   }
 }
