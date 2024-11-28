@@ -3,6 +3,11 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+
+export enum Mode {
+  OUTLINED,
+  CLASSIC,
+}
 export enum Walls {
   NONE,
   BASIC,

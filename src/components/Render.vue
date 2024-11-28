@@ -1,27 +1,32 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef, watch, watchEffect } from 'vue'
-import { Walls } from '@/main'
+import { Mode, Walls } from '@/main'
 import type { RPGme2 } from '@/views/HomeView.vue'
 
 interface Props {
   grid: Array<Walls>[]
   datas: RPGme2 | null
+  mode: Mode
+  image: string
 }
-const { grid, datas } = defineProps<Props>()
+const { grid, datas, mode, image } = defineProps<Props>()
+
 const slider = useTemplateRef('slider')
-const of = ref(0.47)
-const size = 12
+const of = ref(0.0)
+const size = 25
 const lines = ref<number[][]>([])
 const cols = ref<Array<number>[]>([])
 const windows = ref<Array<number>[]>([])
 const doors = ref<Array<number>[]>([])
 const fences = ref<Array<number>[]>([])
+const preview = useTemplateRef('preview')
 const canvas = useTemplateRef('can')
-
+const imgWidth = ref()
 let ctx: CanvasRenderingContext2D | null
 let o = false
 const width = computed(() => (grid[0] ? grid[0].length * size : 1))
 const height = computed(() => (grid ? grid.length * size : 1))
+
 onMounted(() => {
   if (canvas && canvas.value) {
     ctx = canvas.value.getContext('2d')
@@ -34,20 +39,46 @@ const shrinks = [
   [-1, -1],
   [1, -1],
 ]
+watch(
+  () => image,
+  () => {
+    if (preview.value) {
+      preview.value.src = image
+    }
+    imgWidth.value = preview.value?.offsetWidth / 2
+    console.log(preview.value?.offsetWidth)
+  },
+)
+watch(
+  () => [grid, mode],
+  () => {
+    setTimeout(() => {
+      redraw()
+    }, 16)
+  },
+)
 watch(of, () => {
-  console.log('offf ?')
+  redraw()
+})
+const redraw = () => {
+  console.log('redraw')
   lines.value = []
   cols.value = []
   windows.value = []
   doors.value = []
   fences.value = []
-  generateWalls(grid)
+  switch (mode) {
+    case Mode.CLASSIC:
+      generateWalls(grid)
+      break
+    case Mode.OUTLINED:
+      generateOutlines(grid)
+      break
+  }
   generateWindows(datas, grid)
   generateFences(grid)
-
   drawWalls(lines.value, cols.value)
-})
-
+}
 const above = (x: number, y: number, g: Array<Walls>[]) => {
   return y != 0 && g[y - 1][x] == Walls.BASIC
 }
@@ -86,15 +117,19 @@ const generateWindows = (datas: RPGme2 | null, g: Array<Walls>[]) => {
   const vi = 0.0
   datas.objects.forEach((o) => {
     let point
-    if (o.w > o.h || g[o.y + 1][o.x - 1 + 1] == Walls.BASIC) {
-      point = [o.x + 1 - vi, o.y + 1.5, o.x + o.w + 1 + vi, o.y + o.h + 0.5]
-    } else {
-      point = [o.x + 1.5, o.y + 1 - vi, o.x + o.w + 0.5, o.y + o.h + 1 + vi]
-    }
-    if (o.t.id == 10) {
-      windows.value.push(point)
-    } else if (o.t.id == 2) {
-      doors.value.push(point)
+    try {
+      if (o.w > o.h || g[o.y + 1][o.x - 1 + 1] == Walls.BASIC) {
+        point = [o.x + 1 - vi, o.y + 1.5, o.x + o.w + 1 + vi, o.y + o.h + 0.5]
+      } else {
+        point = [o.x + 1.5, o.y + 1 - vi, o.x + o.w + 0.5, o.y + o.h + 1 + vi]
+      }
+      if (o.t.id == 10) {
+        windows.value.push(point)
+      } else if (o.t.id == 2) {
+        doors.value.push(point)
+      }
+    } catch (error) {
+      console.log(o)
     }
   })
 }
@@ -196,10 +231,10 @@ const generateWalls = (g: Array<Walls>[]) => {
         ) {
           n++
         }
-        if (n == 0) continue
+        //if (n == 0) continue
         //if (n == 1 && g[r][c - 1] != Walls.BASIC && g[r][c + 1] != Walls.BASIC) continue
         const row = adjustx([c, r, c + n, r], g)
-
+        if (row[2] - row[0] == 0) continue
         lines.value.push(row)
         c += n
       }
@@ -221,10 +256,12 @@ const generateWalls = (g: Array<Walls>[]) => {
         ) {
           n++
         }
-        if (n == 0) continue
+
+        //if (n == 0) continue
         //if (n == 1 && g[r - 1][c] != Walls.BASIC && g[r + 1][c] != Walls.BASIC) continue
 
         const col = adjusty([c, r, c, r + n], g)
+        if (col[3] - col[1] == 0) continue
         cols.value.push(col)
         r += n
       }
@@ -337,6 +374,9 @@ const drawWalls = (lines: number[][], cols: number[][]) => {
   if (!ctx) return
   ctx.clearRect(0, 0, width.value, height.value)
   ctx.strokeStyle = '#000000'
+  ctx.lineWidth = 3
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
   //datasOut.walls = [];
   lines.forEach((a: Array<number>) => {
     if (!ctx) return
@@ -391,6 +431,7 @@ const drawWalls = (lines: number[][], cols: number[][]) => {
     //w.c = [(a[0]-1) * 50, (a[1]-1)* 50,(a[2]-1) * 50, (a[3]-1) * 50];
     //datasOut.walls.push(w);
     ctx.strokeStyle = '#FF8899'
+
     ctx.beginPath()
     ctx.moveTo(a[0] * size, a[1] * size)
     ctx.lineTo(a[2] * size, a[3] * size)
@@ -399,14 +440,6 @@ const drawWalls = (lines: number[][], cols: number[][]) => {
   })
 }
 
-watch(
-  () => datas,
-  () => {
-    setTimeout(() => {
-      of.value = 0.0
-    }, 150)
-  },
-)
 /*
   datasOut.width = datas.w * 50;
   datasOut.height = datas.h * 50;
@@ -437,27 +470,30 @@ const drawLights = (lis) => {
 </script>
 <template>
   <div class="col">
+    <img ref="preview" class="preview" :width="imgWidth" />
+
     <canvas ref="can" :width="`${width}px`" :height="`${height}px`"></canvas>
-    <input
-      v-if="grid[0]"
-      ref="slider"
-      type="range"
-      min="0.0"
-      max="0.5"
-      step="0.02"
-      v-model="of"
-    /><span v-if="grid[0]">{{ of }}</span>
   </div>
 </template>
 
 <style>
+.preview {
+}
 canvas {
   background-color: #eeeeee;
 }
+.canvasImage {
+  background-color: transparent;
+  position: absolute;
+  top: -25px;
+  left: -25px;
+}
 .col {
+  box-sizing: border-box;
+  position: relative;
   margin: 1rem;
   border: 1px solid #dddddd;
-  padding: 2rem;
+  padding: 0rem;
   display: flex;
   flex-direction: column;
 }

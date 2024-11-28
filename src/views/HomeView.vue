@@ -2,13 +2,16 @@
 import { onMounted, ref, useTemplateRef } from 'vue'
 import Grid from '@/components/Grid.vue'
 import ini from '@/datas/in.json'
-import { Walls } from '@/main'
+import { Mode, Walls } from '@/main'
 import Render from '@/components/Render.vue'
 export type RPGme2 = typeof ini
 
-const g = ref<Array<Walls>[]>([])
+const grid = ref<Array<Walls>[]>([])
 const datas = ref<RPGme2 | null>(null)
+const mode = ref(Mode.OUTLINED)
 const download = useTemplateRef('download')
+const toggle = useTemplateRef('toggle')
+const image = ref()
 const wall = {
   light: 40,
   sight: 20,
@@ -61,15 +64,36 @@ const initGrid = (data: RPGme2, g: Array<Walls>[]) => {
     }
   })
 }
-
+const onMode = () => {
+  console.log('on mode ?')
+  if (mode.value == Mode.OUTLINED) {
+    mode.value = Mode.CLASSIC
+  } else {
+    mode.value = Mode.OUTLINED
+  }
+}
 const onFile = async (e: Event) => {
   const files = (<HTMLInputElement>e.target).files
-  g.value = []
+  grid.value = []
   if (files && files.length) {
     const response = await files[0].text()
     const json = JSON.parse(response)
 
-    initGrid(json, g.value)
+    initGrid(json, grid.value)
+  }
+}
+const onImage = async (e: Event) => {
+  const files = (<HTMLInputElement>e.target).files
+  const reader = new FileReader()
+  reader.onloadend = function () {
+    image.value = reader.result
+  }
+  grid.value = []
+  if (files && files.length) {
+    const file = await files[0]
+    if (file) {
+      reader.readAsDataURL(file)
+    }
   }
 }
 </script>
@@ -77,10 +101,13 @@ const onFile = async (e: Event) => {
 <template>
   <main>
     <input v-on:change="onFile" type="file" />
+    <input v-on:change="onImage" type="file" />
+    <input v-on:change="onMode" type="checkbox" />
     <button ref="download">download</button>
+
     <div class="f">
-      <Grid :datas="g" />
-      <Render :grid="g" :datas="datas" />
+      <Grid :datas="grid" />
+      <Render :grid :datas :mode :image />
     </div>
   </main>
 </template>
