@@ -34,6 +34,7 @@ const getColor = (wall: Walls) => {
 <template>
   <div class="cont">
     <div class="grid" key="grid" :style="widthObj">
+
       <template :key="`${ide}`" v-for="(i, ide) in datas">
         <span v-for="(k, id) in i" :key="`${ide}-${id}`" :style="getColor(k)"></span>
       </template>
@@ -43,13 +44,21 @@ const getColor = (wall: Walls) => {
 
 <style>
 .cont {
-  margin: 1rem;
-  padding: 2rem;
-  border: 1px solid #dddddd;
+
+  min-width: 250px;
+  min-height: 250px;
+  text-align: center;
+  background-color: #dddddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 .grid {
   line-height: 0px;
   box-sizing: border-box;
+  background-color: #DDDDDD;
+
   span {
     display: inline-block;
     width: 8px;

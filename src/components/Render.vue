@@ -2,16 +2,29 @@
 import { computed, onMounted, ref, useTemplateRef, watch, watchEffect } from 'vue'
 import { Mode, Walls } from '@/main'
 import type { RPGme2 } from '@/views/HomeView.vue'
-
+import { useDefaultStore } from '@/stores/default';
+import scene from "@/datas/helloscene.json"
+const defaultStore = useDefaultStore()
 interface Props {
   grid: Array<Walls>[]
   datas: RPGme2 | null
   mode: Mode
-  image: string
+  image: ImageBitmap | undefined
 }
+const walle = {
+  light: 40,
+  sight: 20,
+  sound: 20,
+  move: 20,
+  c: [],
+  _id: '',
+  dir: 0,
+  door: 0,
+  ds: 0,
+}
+
 const { grid, datas, mode, image } = defineProps<Props>()
 
-const slider = useTemplateRef('slider')
 const of = ref(0.0)
 const size = 25
 const lines = ref<number[][]>([])
@@ -19,13 +32,26 @@ const cols = ref<Array<number>[]>([])
 const windows = ref<Array<number>[]>([])
 const doors = ref<Array<number>[]>([])
 const fences = ref<Array<number>[]>([])
-const preview = useTemplateRef('preview')
 const canvas = useTemplateRef('can')
-const imgWidth = ref()
+
 let ctx: CanvasRenderingContext2D | null
 let o = false
-const width = computed(() => (grid[0] ? grid[0].length * size : 1))
-const height = computed(() => (grid ? grid.length * size : 1))
+const width = computed(() => {
+  if (grid[0]) {
+    return grid[0].length * size;
+  } else if (image) {
+    return image.width / 2 + 50
+  }
+  return 200
+})
+const height = computed(() => {
+  if (grid.length) {
+    return grid.length * size;
+  } else if (image) {
+    return image.height / 2 + 50
+  }
+  return 200
+})
 
 onMounted(() => {
   if (canvas && canvas.value) {
@@ -40,19 +66,19 @@ const shrinks = [
   [1, -1],
 ]
 watch(
-  () => image,
+  () => [mode, image],
   () => {
-    if (preview.value) {
-      preview.value.src = image
-    }
-    imgWidth.value = preview.value?.offsetWidth / 2
-    console.log(preview.value?.offsetWidth)
+    setTimeout(() => {
+      console.log("laiiiiiiiiaiea ?")
+      redraw()
+    }, 16)
   },
 )
 watch(
-  () => [grid, mode],
+  () => grid,
   () => {
     setTimeout(() => {
+      console.log("la ?")
       redraw()
     }, 16)
   },
@@ -61,7 +87,6 @@ watch(of, () => {
   redraw()
 })
 const redraw = () => {
-  console.log('redraw')
   lines.value = []
   cols.value = []
   windows.value = []
@@ -102,7 +127,6 @@ const addPointC = (x: number, y: number, shrink: number) => {
   }
   o = !o
 }
-
 const addPointL = (x: number, y: number, shrink: number) => {
   if (!o) {
     lines.value.push([x + shrinks[shrink][0] * of.value, y + shrinks[shrink][1] * of.value, -1, -1])
@@ -113,6 +137,7 @@ const addPointL = (x: number, y: number, shrink: number) => {
   o = !o
 }
 const generateWindows = (datas: RPGme2 | null, g: Array<Walls>[]) => {
+  if (!g.length) return
   if (!datas) return
   const vi = 0.0
   datas.objects.forEach((o) => {
@@ -134,6 +159,7 @@ const generateWindows = (datas: RPGme2 | null, g: Array<Walls>[]) => {
   })
 }
 const generateFences = (g: Array<Walls>[]) => {
+  if (!g.length) return
   const h = g.length - 1
   const w = g[0].length - 1
   for (let r = 0; r <= h; r++) {
@@ -213,6 +239,7 @@ const adjusty = (col: number[], g: Walls[][]): number[] => {
   return [x1 + 0.5, y1, x2 + 0.5, y2]
 }
 const generateWalls = (g: Array<Walls>[]) => {
+  if (!g.length) return
   const h = g.length - 1
   const w = g[0].length - 1
   for (let r = 0; r <= h; r++) {
@@ -270,9 +297,9 @@ const generateWalls = (g: Array<Walls>[]) => {
 }
 
 const generateOutlines = (g: Array<Walls>[]) => {
+  if (!g.length) return
   const h = g.length - 1
   const w = g[0].length - 1
-
   for (let r = 0; r <= h; r++) {
     let c
     for (c = 0; c <= w; c++) {
@@ -369,83 +396,94 @@ const generateOutlines = (g: Array<Walls>[]) => {
     }
   }
 }
+const walls = [];
+const addWall = (wall: number[], type: Walls) => {
+  const w = JSON.parse(JSON.stringify(walle));
+  w.c = [(wall[0] - 1) * 50, (wall[1] - 1) * 50, (wall[2] - 1) * 50, (wall[3] - 1) * 50];
+  w.threshold = {
+    light: null,
+    sight: null,
+    sound: null,
+    attenuation: false,
+  }
+  switch (type) {
+    case Walls.BASIC:
+      w.light = w.sight = w.sound = w.move = 20;
+      break;
+    case Walls.FENCE:
+      w.light = w.sight = w.sound = 0
+      w.move = 20;
+      break;
+    case Walls.DOOR:
+      w.light = w.sight = w.sound = w.move = 20;
+      w.door = 1
+      break;
+    case Walls.WINDOW:
+      w.light = w.sight = 30
+      w.sound = w.move = 20
+      w.threshold.light = w.threshold.sight = 4
+      w.attenuation = true
+      break;
+  }
 
+  walls.push(w);
+  console.log(walls)
+  // draw
+  ctx.beginPath()
+  ctx.moveTo(wall[0] * size, wall[1] * size)
+  ctx.lineTo(wall[2] * size, wall[3] * size)
+  ctx.stroke()
+  ctx.closePath()
+
+}
 const drawWalls = (lines: number[][], cols: number[][]) => {
   if (!ctx) return
+
+
+
   ctx.clearRect(0, 0, width.value, height.value)
-  ctx.strokeStyle = '#000000'
+  if (image) {
+    ctx.drawImage(image, 25, 25, image.width / 2, image.height / 2)
+  }
   ctx.lineWidth = 3
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
-  //datasOut.walls = [];
+
   lines.forEach((a: Array<number>) => {
     if (!ctx) return
-    //const w = JSON.parse(JSON.stringify(wall));
-    //w.c = [(a[0]-1) * 50, (a[1]-1)* 50,(a[2]-1) * 50, (a[3]-1) * 50];
-    //datasOut.walls.push(w);
-
-    ctx.beginPath()
-    ctx.moveTo(a[0] * size, a[1] * size)
-    ctx.lineTo(a[2] * size, a[3] * size)
-    ctx.stroke()
-    ctx.closePath()
+    ctx.strokeStyle = '#ffffbb'
+    addWall(a, Walls.BASIC)
   })
   cols.forEach((a: Array<number>) => {
     if (!ctx) return
-    //const w = JSON.parse(JSON.stringify(wall));
-    //w.c = [(a[0]-1) * 50, (a[1]-1)* 50,(a[2]-1) * 50, (a[3]-1) * 50];
-    //datasOut.walls.push(w);
-    ctx.beginPath()
-    ctx.moveTo(a[0] * size, a[1] * size)
-    ctx.lineTo(a[2] * size, a[3] * size)
-    ctx.stroke()
-    ctx.closePath()
+    ctx.strokeStyle = '#ffffbb'
+    addWall(a, Walls.BASIC)
   })
   fences.value.forEach((a: Array<number>) => {
     if (!ctx) return
-    //const w = JSON.parse(JSON.stringify(wall));
-    //w.c = [(a[0]-1) * 50, (a[1]-1)* 50,(a[2]-1) * 50, (a[3]-1) * 50];
-    //datasOut.walls.push(w);
-    ctx.strokeStyle = '#333333'
-    ctx.beginPath()
-    ctx.moveTo(a[0] * size, a[1] * size)
-    ctx.lineTo(a[2] * size, a[3] * size)
-    ctx.stroke()
-    ctx.closePath()
+    ctx.strokeStyle = '#77e7e8'
+    addWall(a, Walls.FENCE)
   })
   windows.value.forEach((a: Array<number>) => {
     if (!ctx) return
-    //const w = JSON.parse(JSON.stringify(wall));
-    //w.c = [(a[0]-1) * 50, (a[1]-1)* 50,(a[2]-1) * 50, (a[3]-1) * 50];
-    //datasOut.walls.push(w);
-    ctx.strokeStyle = '#8888DD'
-    ctx.beginPath()
-    ctx.moveTo(a[0] * size, a[1] * size)
-    ctx.lineTo(a[2] * size, a[3] * size)
-    ctx.stroke()
-    ctx.closePath()
+    ctx.strokeStyle = '#c7d8ff'
+    addWall(a, Walls.WINDOW)
   })
   doors.value.forEach((a: Array<number>) => {
     if (!ctx) return
-    //const w = JSON.parse(JSON.stringify(wall));
-    //w.c = [(a[0]-1) * 50, (a[1]-1)* 50,(a[2]-1) * 50, (a[3]-1) * 50];
-    //datasOut.walls.push(w);
-    ctx.strokeStyle = '#FF8899'
-
-    ctx.beginPath()
-    ctx.moveTo(a[0] * size, a[1] * size)
-    ctx.lineTo(a[2] * size, a[3] * size)
-    ctx.stroke()
-    ctx.closePath()
+    ctx.strokeStyle = '#6666ee'
+    addWall(a, Walls.DOOR)
   })
+
+  const scen = JSON.parse(JSON.stringify(scene))
+  scen.width = grid[0].length * 50
+  scen.height = grid.length * 50
+  scen.padding = 0
+  scen.walls = walls
+
+  defaultStore.output = scen
 }
 
-/*
-  datasOut.width = datas.w * 50;
-  datasOut.height = datas.h * 50;
-  datasOut.padding = 0;
-  outp.innerHTML = JSON.stringify(datasOut);
-  */
 /*
 const ligths = [];
 const drawLights = (lis) => {
@@ -464,35 +502,29 @@ const drawLights = (lis) => {
   });
 };
 
-
-
 */
 </script>
 <template>
   <div class="col">
-    <img ref="preview" class="preview" :width="imgWidth" />
-
     <canvas ref="can" :width="`${width}px`" :height="`${height}px`"></canvas>
   </div>
 </template>
 
 <style>
-.preview {
-}
-canvas {
-  background-color: #eeeeee;
-}
 .canvasImage {
   background-color: transparent;
   position: absolute;
   top: -25px;
   left: -25px;
 }
+
 .col {
+  min-width: 250px;
+  min-height: 250px;
   box-sizing: border-box;
   position: relative;
-  margin: 1rem;
   border: 1px solid #dddddd;
+  background-color: #dddddd;
   padding: 0rem;
   display: flex;
   flex-direction: column;

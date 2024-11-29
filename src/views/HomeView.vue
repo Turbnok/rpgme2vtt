@@ -1,35 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref, useTemplateRef } from 'vue'
+import { onMounted, Ref, ref, useTemplateRef } from 'vue'
 import Grid from '@/components/Grid.vue'
 import ini from '@/datas/in.json'
 import { Mode, Walls } from '@/main'
 import Render from '@/components/Render.vue'
+import { useDefaultStore } from '@/stores/default'
 export type RPGme2 = typeof ini
 
 const grid = ref<Array<Walls>[]>([])
 const datas = ref<RPGme2 | null>(null)
-const mode = ref(Mode.OUTLINED)
-const download = useTemplateRef('download')
-const toggle = useTemplateRef('toggle')
-const image = ref()
-const wall = {
-  light: 40,
-  sight: 20,
-  sound: 20,
-  move: 20,
-  c: [0, 1725, 2237, 1787],
-  _id: '',
-  dir: 0,
-  door: 0,
-  ds: 0,
-  threshold: {
-    light: null,
-    sight: null,
-    sound: null,
-    attenuation: false,
-  },
-  flags: {},
-}
+const mode = ref(Mode.CLASSIC)
+const image: Ref<ImageBitmap> = ref()
+const defaultStore = useDefaultStore()
 
 const initGrid = (data: RPGme2, g: Array<Walls>[]) => {
   const w = data.w
@@ -64,13 +46,16 @@ const initGrid = (data: RPGme2, g: Array<Walls>[]) => {
     }
   })
 }
+const onDownload = () => {
+  const jsonData = JSON.stringify(useDefaultStore().output);
+  const file = new Blob([jsonData], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file);
+  a.download = "rpgme2foundryvtt.json";
+  a.click();
+}
 const onMode = () => {
-  console.log('on mode ?')
-  if (mode.value == Mode.OUTLINED) {
-    mode.value = Mode.CLASSIC
-  } else {
-    mode.value = Mode.OUTLINED
-  }
+  mode.value = mode.value == Mode.OUTLINED ? Mode.CLASSIC : Mode.OUTLINED
 }
 const onFile = async (e: Event) => {
   const files = (<HTMLInputElement>e.target).files
@@ -84,34 +69,65 @@ const onFile = async (e: Event) => {
 }
 const onImage = async (e: Event) => {
   const files = (<HTMLInputElement>e.target).files
-  const reader = new FileReader()
-  reader.onloadend = function () {
-    image.value = reader.result
-  }
-  grid.value = []
   if (files && files.length) {
-    const file = await files[0]
+    const file = files[0]
     if (file) {
-      reader.readAsDataURL(file)
+      const bitmap: ImageBitmap = await createImageBitmap(file);
+      image.value = bitmap
     }
   }
 }
 </script>
-
 <template>
   <main>
-    <input v-on:change="onFile" type="file" />
-    <input v-on:change="onImage" type="file" />
-    <input v-on:change="onMode" type="checkbox" />
-    <button ref="download">download</button>
-
     <div class="f">
-      <Grid :datas="grid" />
-      <Render :grid :datas :mode :image />
+      <div class="box">
+        <Grid :datas="grid" />
+        <label for="file">
+          <span>Data</span>
+          <br />
+          <input name="file" v-on:change="onFile" type="file" />
+        </label>
+      </div>
+      <div class="box">
+        <Render :grid :datas :mode="mode" :image />
+        <label for="image">
+          <span>Image</span>
+          <br />
+          <input name="image" v-on:change="onImage" type="file" />
+        </label>
+      </div>
+    </div>
+    <div class="options">
+      <label for="mode">
+        <span>Outlined</span>
+        <input name="mode" v-on:change="onMode" type="checkbox" />
+        <input type="button" v-on:click="onDownload" value="download" />
+      </label>
     </div>
   </main>
 </template>
 <style scoped>
+.options {
+  text-align: center;
+  padding-bottom: 3rem;
+}
+
+label {
+  display: block;
+  margin-top: 1rem;
+}
+
+span {
+  font-weight: bold;
+}
+
+.box {
+  border: 1px solid #EEEEEE;
+  padding: 1rem;
+  margin: 0.5rem;
+}
+
 .f {
   display: flex;
   flex-direction: row;
