@@ -11,7 +11,7 @@ on __RPG Map Editor 2__
 
 on __rpgme2vtt__
 
-4. Import map data  
+4. Import map data on https://turbnok.github.io/rpgme2vtt/
 5. Optionnaly import image in rpgme2tvv  
 6. choose Outlined Mode or not  
 7. Dowload foundryvtt scene  
