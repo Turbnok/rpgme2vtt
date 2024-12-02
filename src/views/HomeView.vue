@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, Ref, ref, useTemplateRef } from 'vue'
+import { ref, type Ref } from 'vue'
 import Grid from '@/components/Grid.vue'
 import ini from '@/datas/in.json'
 import { Mode, Walls } from '@/main'
@@ -10,7 +10,7 @@ export type RPGme2 = typeof ini
 const grid = ref<Array<Walls>[]>([])
 const datas = ref<RPGme2 | null>(null)
 const mode = ref(Mode.CLASSIC)
-const image: Ref<ImageBitmap> = ref()
+const image: Ref<ImageBitmap | undefined> = ref()
 const defaultStore = useDefaultStore()
 
 const initGrid = (data: RPGme2, g: Array<Walls>[]) => {
@@ -47,7 +47,7 @@ const initGrid = (data: RPGme2, g: Array<Walls>[]) => {
   })
 }
 const onDownload = () => {
-  const jsonData = JSON.stringify(useDefaultStore().output);
+  const jsonData = JSON.stringify(defaultStore.output);
   const file = new Blob([jsonData], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(file);

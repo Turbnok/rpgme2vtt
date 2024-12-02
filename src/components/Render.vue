@@ -396,7 +396,7 @@ const generateOutlines = (g: Array<Walls>[]) => {
     }
   }
 }
-const walls = [];
+const walls: Walls[] = [];
 const addWall = (wall: number[], type: Walls) => {
   const w = JSON.parse(JSON.stringify(walle));
   w.c = [(wall[0] - 1) * 50, (wall[1] - 1) * 50, (wall[2] - 1) * 50, (wall[3] - 1) * 50];
@@ -427,13 +427,16 @@ const addWall = (wall: number[], type: Walls) => {
   }
 
   walls.push(w);
-  console.log(walls)
+
   // draw
-  ctx.beginPath()
-  ctx.moveTo(wall[0] * size, wall[1] * size)
-  ctx.lineTo(wall[2] * size, wall[3] * size)
-  ctx.stroke()
-  ctx.closePath()
+  if (ctx) {
+
+    ctx.beginPath()
+    ctx.moveTo(wall[0] * size, wall[1] * size)
+    ctx.lineTo(wall[2] * size, wall[3] * size)
+    ctx.stroke()
+    ctx.closePath()
+  }
 
 }
 const drawWalls = (lines: number[][], cols: number[][]) => {
