@@ -522,8 +522,8 @@ const drawLights = (lis) => {
 }
 
 .col {
-  min-width: 250px;
-  min-height: 250px;
+  min-width: 315px;
+  min-height: 315px;
   box-sizing: border-box;
   position: relative;
   border: 1px solid #dddddd;

@@ -3,6 +3,8 @@
 A tool for foundryvtt.  
 Generates walls, doors, windows from [RPG Map Editor 2](https://deepnight.net/tools/rpg-map/) maps.
 
+This is a personnal project, the code is horrible but it works. I’m a retired dev and don’t care too much of code quality.
+
 on __RPG Map Editor 2__
 
 1. Create a map

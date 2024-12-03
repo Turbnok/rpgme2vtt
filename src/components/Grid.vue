@@ -45,8 +45,8 @@ const getColor = (wall: Walls) => {
 <style>
 .cont {
 
-  min-width: 250px;
-  min-height: 250px;
+  min-width: 315px;
+  min-height: 315px;
   text-align: center;
   background-color: #dddddd;
   display: flex;
